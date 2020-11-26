@@ -27,6 +27,7 @@ import asyncio
 from nauti.collection import Collection, CollectionCallback
 from nauti.collections.interfaces import InterfaceCollection
 from nauti_netbox.source import NetboxSource, NetboxClient
+from nauti.log import get_logger
 
 # -----------------------------------------------------------------------------
 # Exports
@@ -43,6 +44,7 @@ __all__ = ["NetboxInterfaceCollection"]
 
 
 class NetboxInterfaceCollection(Collection, InterfaceCollection):
+
     source_class = NetboxSource
 
     async def fetch(self, hostname, **params):
@@ -57,11 +59,11 @@ class NetboxInterfaceCollection(Collection, InterfaceCollection):
             )
         )
 
-    async def fetch_keys(self, keys: Dict):
+    async def fetch_items(self, items: Dict):
         await asyncio.gather(
             *(
                 self.fetch(hostname=rec["hostname"], name=rec["interface"])
-                for rec in keys.values()
+                for rec in items.values()
             )
         )
 
@@ -72,19 +74,21 @@ class NetboxInterfaceCollection(Collection, InterfaceCollection):
             description=rec["description"],
         )
 
-    async def create_items(
-        self, missing, callback: Optional[CollectionCallback] = None
+    async def add_items(
+        self, items, callback: Optional[CollectionCallback] = None
     ):
         client: NetboxClient = self.source.client
 
         device_records = await client.fetch_devices(
-            hostname_list=(rec["hostname"] for rec in missing.values()), key="name"
+            hostname_list=(rec["hostname"] for rec in items.values()), key="name"
         )
+
+        log = get_logger()
 
         def _create_task(key, fields):
             hostname, if_name = key
             if hostname not in device_records:
-                print(f"ERROR: device {hostname} missing.")
+                log.error(f"device {hostname} missing.")
                 return None
 
             # TODO: set the interface type correctly based on some kind of mapping definition.
@@ -107,8 +111,11 @@ class NetboxInterfaceCollection(Collection, InterfaceCollection):
             )
 
         await self.source.update(
-            updates=missing, callback=callback, creator=_create_task
+            updates=items, callback=callback, creator=_create_task
         )
+
+    async def delete_items(self, items: Dict, callback: Optional[CollectionCallback] = None):
+        raise NotImplementedError()
 
     async def update_items(
         self, changes: Dict, callback: Optional[CollectionCallback] = None

@@ -88,11 +88,11 @@ class NetboxPortChanCollection(Collection, PortChannelCollection):
                 if_rec[_LAG_KEY_] = lag_rec
                 self.source_records.append(if_rec)
 
-    async def fetch_keys(self, keys: Dict):
+    async def fetch_items(self, items: Dict):
         await asyncio.gather(
             *(
                 self.fetch(hostname=rec["hostname"], name=rec["interface"])
-                for rec in keys.values()
+                for rec in items.values()
             )
         )
 

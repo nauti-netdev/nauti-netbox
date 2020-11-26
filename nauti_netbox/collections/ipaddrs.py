@@ -36,11 +36,11 @@ class NetboxIPAddrCollection(Collection, IPAddrCollection):
             )
         )
 
-    async def fetch_keys(self, keys):
+    async def fetch_items(self, items):
         await asyncio.gather(
             *(
                 self.fetch(hostname=rec["hostname"], address=rec["ipaddr"])
-                for rec in keys.values()
+                for rec in items.values()
             )
         )
 
