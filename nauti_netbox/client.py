@@ -43,6 +43,7 @@ __all__ = ["NetboxClient"]
 #
 # -----------------------------------------------------------------------------
 
+
 class NetboxClient(AsyncClient):
     ENV_VARS = ["NETBOX_ADDR", "NETBOX_TOKEN"]
     DEFAULT_PAGE_SZ = 100
@@ -50,8 +51,8 @@ class NetboxClient(AsyncClient):
 
     def __init__(self, base_url=None, token=None, **clientopts):
         try:
-            url = base_url or environ['NETBOX_ADDR']
-            token = token or environ['NETBOX_TOKEN']
+            url = base_url or environ["NETBOX_ADDR"]
+            token = token or environ["NETBOX_TOKEN"]
         except KeyError as exc:
             raise RuntimeError(f"Missing environment variable: {exc.args[0]}")
 
@@ -59,7 +60,7 @@ class NetboxClient(AsyncClient):
             base_url=f"{url}/api",
             headers=dict(Authorization=f"Token {token}"),
             verify=False,
-            **clientopts
+            **clientopts,
         )
         self._api_s4 = asyncio.Semaphore(self.API_RATE_LIMIT)
 

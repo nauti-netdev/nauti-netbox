@@ -34,7 +34,7 @@ from nauti_netbox import NAUTI_SOURCE_NAME
 from nauti_netbox.client import NetboxClient
 
 
-__all__ = ['NetboxSource', 'NetboxClient']
+__all__ = ["NetboxSource", "NetboxClient"]
 
 
 class NetboxSource(Source):
@@ -42,27 +42,32 @@ class NetboxSource(Source):
     name = NAUTI_SOURCE_NAME
     client_class = NetboxClient
 
-    def __init__(self, source_config: Optional[SourcesModel] = None, **kwargs):
+    def __init__(self, config: Optional[SourcesModel] = None, **kwargs):
         super(NetboxSource, self).__init__()
         initargs = dict()
 
-        if source_config:
-            initargs.update(dict(
-                base_url=source_config.default.url,
-                token=source_config.default.credentials.token.get_secret_value(),
-                **source_config.default.options
-            ))
+        if config:
+            initargs.update(
+                dict(
+                    base_url=config.default.url,
+                    token=config.default.credentials.token.get_secret_value(),
+                    **config.default.options,
+                )
+            )
             initargs.update(kwargs)
 
-        self.client = NetboxClient(**(initargs or kwargs))
+        self._client_initargs = initargs or kwargs
+
+        # the client instance will be created in the `login` method.
+        self.client = None
 
     async def login(self, *vargs, **kwargs):
-        # no login action as token is used
-        pass
+        # when executing the login, create the new REST client.
+        self.client = NetboxClient(**self._client_initargs)
 
     async def logout(self):
         await self.client.aclose()
 
     @property
     def is_connected(self):
-        return not self.client.is_closed
+        return False if not self.client else (not self.client.is_closed)

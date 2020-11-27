@@ -44,5 +44,7 @@ class NetboxSiteCollection(Collection, SiteCollection):
 
         await self.source.update(updates=missing, callback=callback, creator=_creator)
 
-    async def update_items(self, changes: Dict, callback: Optional[CollectionCallback] = None):
+    async def update_items(
+        self, changes: Dict, callback: Optional[CollectionCallback] = None
+    ):
         pass

@@ -27,7 +27,6 @@ import asyncio
 from nauti.collection import Collection, CollectionCallback
 from nauti.collections.devices import DeviceCollection
 from nauti_netbox.source import NetboxSource, NetboxClient
-from nauti.config import get_config
 from nauti.mappings import normalize_hostname
 
 # -----------------------------------------------------------------------------
@@ -86,14 +85,12 @@ class NetboxDeviceCollection(Collection, DeviceCollection):
     async def add_items(
         self, items: Dict, callback: Optional[CollectionCallback] = None
     ):
-        config = get_config()
-
         nb_api = self.source.client
 
         device_types, sites, device_role, platforms = await asyncio.gather(
             nb_api.paginate(url="/dcim/device-types/"),
             nb_api.paginate(url="/dcim/sites/"),
-            nb_api.paginate(url="/dcim/device-roles/", filters={"slug": "unknown"}),
+            nb_api.paginate(url="/dcim/device-roles/", filters={"slug": "unassigned"}),
             nb_api.paginate(url="/dcim/platforms/"),
         )
 
@@ -105,11 +102,13 @@ class NetboxDeviceCollection(Collection, DeviceCollection):
         def _create_task(key, fields):  # noqa
             model = fields["model"]
             hostname = fields["hostname"]
-            if (dt_slug := config.maps["models"].get(model, "")) == "":
-                print(
-                    f"ERROR: {hostname}, no device-type mapping for model {model}, skipping."
-                )
-                return None
+            dt_slug = self.imap_field_value("model", model)
+
+            # if (dt_slug := config.maps["models"].get(model, "")) == "":
+            #     print(
+            #         f"ERROR: {hostname}, no device-type mapping for model {model}, skipping."
+            #     )
+            #     return None
 
             if (dt_id := device_types.get(dt_slug)) is None:
                 print(
@@ -197,5 +196,7 @@ class NetboxDeviceCollection(Collection, DeviceCollection):
 
         await self.source.update(items, callback, creator=_create_task)
 
-    async def delete_items(self, items: Dict, callback: Optional[CollectionCallback] = None):
+    async def delete_items(
+        self, items: Dict, callback: Optional[CollectionCallback] = None
+    ):
         raise NotImplementedError()
