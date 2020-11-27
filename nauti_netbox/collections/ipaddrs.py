@@ -25,6 +25,7 @@ _IPAM_ADDR_URL = "/ipam/ip-addresses/"
 
 
 class NetboxIPAddrCollection(Collection, IPAddrCollection):
+
     source_class = NetboxSource
 
     async def fetch(self, hostname, **params):
@@ -45,15 +46,23 @@ class NetboxIPAddrCollection(Collection, IPAddrCollection):
         )
 
     def itemize(self, rec: Dict) -> Dict:
-        if_dat = rec["interface"]
+        # if IP address is not assgined to an interface, then leave those field
+        # values as empty-string
+
+        # TODO: need to handle difference between the v2.8 release and v2.9 release
+        #       where Netbox changed the API body format.
+
+        if not (if_dat := rec.get("interface")):
+            return {"ipaddr": rec["address"], "hostname": "", "interface": ""}
+
         return {
             "ipaddr": rec["address"],
             "hostname": if_dat["device"]["name"],
             "interface": if_dat["name"],
         }
 
-    async def create_items(
-        self, missing, callback: Optional[CollectionCallback] = None
+    async def add_items(
+        self, items: Dict, callback: Optional[CollectionCallback] = None
     ):
 
         client: NetboxClient = self.source.client
@@ -62,7 +71,7 @@ class NetboxIPAddrCollection(Collection, IPAddrCollection):
         # we can bind the address to it.
 
         if_key_fn = itemgetter("hostname", "interface")
-        if_items = map(if_key_fn, missing.values())
+        if_items = map(if_key_fn, items.values())
         if_recs = await client.fetch_devices_interfaces(if_items)
         if_lkup = {(rec["device"]["name"], rec["name"]): rec for rec in if_recs}
 
@@ -83,11 +92,14 @@ class NetboxIPAddrCollection(Collection, IPAddrCollection):
 
             return api.post(url=_IPAM_ADDR_URL, json=payload)
 
-        await self.source.update(missing, callback, _create_task)
+        await self.source.update(items, callback, _create_task)
 
     async def update_items(
         self, changes: Dict, callback: Optional[CollectionCallback] = None
     ):
-        emsg = f"{self.__class__.__name__}:update not implemented."
-        print(emsg)
-        # raise NotImplementedError(emsg)
+        raise NotImplementedError()
+
+    async def delete_items(
+        self, items: Dict, callback: Optional[CollectionCallback] = None
+    ):
+        raise NotImplementedError()

@@ -74,9 +74,7 @@ class NetboxInterfaceCollection(Collection, InterfaceCollection):
             description=rec["description"],
         )
 
-    async def add_items(
-        self, items, callback: Optional[CollectionCallback] = None
-    ):
+    async def add_items(self, items, callback: Optional[CollectionCallback] = None):
         client: NetboxClient = self.source.client
 
         device_records = await client.fetch_devices(
@@ -110,11 +108,11 @@ class NetboxInterfaceCollection(Collection, InterfaceCollection):
                 ),
             )
 
-        await self.source.update(
-            updates=items, callback=callback, creator=_create_task
-        )
+        await self.source.update(updates=items, callback=callback, creator=_create_task)
 
-    async def delete_items(self, items: Dict, callback: Optional[CollectionCallback] = None):
+    async def delete_items(
+        self, items: Dict, callback: Optional[CollectionCallback] = None
+    ):
         raise NotImplementedError()
 
     async def update_items(

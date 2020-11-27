@@ -19,6 +19,5 @@ from nauti.collection import get_collection
 
 load_default_config_file()
 
-nb = get_source('netbox')
-nb_col = get_collection(nb, 'devices')
-
+nb = get_source("netbox")
+nb_col = get_collection(nb, "devices")

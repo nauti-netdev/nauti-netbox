@@ -16,11 +16,7 @@
 
 
 from setuptools import setup, find_packages
-from nauti.entrypoints import (
-    find_collection_entrypoints, NAUTI_EP_COLLECTIONS,
-    find_source_entrypoints, NAUTI_EP_SOURCES
-)
-
+from pathlib import Path
 
 package_name = "nauti-netbox"
 package_version = open("VERSION").read().strip()
@@ -40,6 +36,14 @@ with open("README.md", "r") as fh:
 #
 # -----------------------------------------------------------------------------
 
+plugins = [
+    f"{fp.stem} = nauti_netbox.collections.{fp.stem}"
+    for fp in Path("nauti_netbox/collections").glob("[!_]*.py")
+]
+
+plugins.append("netbox = nauti_netbox.source")
+
+
 setup(
     name=package_name,
     version=package_version,
@@ -50,10 +54,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=requirements(),
-    entry_points={
-        NAUTI_EP_SOURCES: find_source_entrypoints('nauti_netbox'),
-        NAUTI_EP_COLLECTIONS: find_collection_entrypoints('nauti_netbox/collections')
-    },
+    entry_points={"nauti.plugins": plugins},
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
