@@ -93,10 +93,11 @@ class NetboxInterfaceCollection(Collection, InterfaceCollection):
             #       for now, use this name-basis for loopback, vlan, port-channel.
 
             if_type = {
-                "v": "virtual",  # vlan
-                "l": "virtual",  # loopback
-                "p": "lag",  # port-channel
-            }.get(if_name[0].lower(), "other")
+                "vl": "virtual",  # vlan
+                "vx": "virtual",  # vxlan
+                "lo": "virtual",  # loopback
+                "po": "lag",  # port-channel
+            }.get(if_name[0:2].lower(), "other")
 
             return client.post(
                 url="/dcim/interfaces/",

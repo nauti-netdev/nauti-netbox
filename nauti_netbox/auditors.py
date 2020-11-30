@@ -15,7 +15,7 @@ class NetboxWithDeviceAuditor(Auditor):
         devices = {item["hostname"] for item in self.origin.items.values()}
         tasks = [self.target.fetch(device=device) for device in devices]
 
-        ident = f"{self.target.name}/{self.name}"
+        ident = f"{self.target.source.name}/{self.name}"
         log.info(f"Fetching {ident} collection ...")
 
         # TODO: remove hardcode limit to something configuraable
