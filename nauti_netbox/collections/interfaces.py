@@ -47,22 +47,22 @@ class NetboxInterfaceCollection(Collection, InterfaceCollection):
 
     source_class = NetboxSource
 
-    async def fetch(self, hostname, **params):
+    async def fetch(self, **filters):
         """
         fetch interfaces must be done on a per-device (hostname) basis.
         fetch args are Netbox API specific.
         """
+        if "device" not in filters:
+            raise RuntimeError("netbox.interfaces.fetch requires 'device' filter.")
 
         self.source_records.extend(
-            await self.source.client.paginate(
-                url="/dcim/interfaces/", filters=dict(device=hostname, **params)
-            )
+            await self.source.client.paginate(url="/dcim/interfaces/", filters=filters)
         )
 
     async def fetch_items(self, items: Dict):
         await asyncio.gather(
             *(
-                self.fetch(hostname=rec["hostname"], name=rec["interface"])
+                self.fetch(device=rec["hostname"], name=rec["interface"])
                 for rec in items.values()
             )
         )
@@ -116,7 +116,7 @@ class NetboxInterfaceCollection(Collection, InterfaceCollection):
         raise NotImplementedError()
 
     async def update_items(
-        self, changes: Dict, callback: Optional[CollectionCallback] = None
+        self, items: Dict, callback: Optional[CollectionCallback] = None
     ):
         # Presently the only field to update is description; so we don't need to put
         # much logic into this post body process.  Might need to in the future.
@@ -130,4 +130,4 @@ class NetboxInterfaceCollection(Collection, InterfaceCollection):
                 json=dict(description=fields["description"]),
             )
 
-        await self.source.update(changes, callback, _create_task)
+        await self.source.update(items, callback, _create_task)
