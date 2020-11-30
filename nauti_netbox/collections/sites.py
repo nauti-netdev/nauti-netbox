@@ -22,17 +22,19 @@ from nauti_netbox.source import NetboxSource, NetboxClient
 
 
 class NetboxSiteCollection(Collection, SiteCollection):
-
     source_class = NetboxSource
 
-    async def fetch(self):
+    async def fetch(self, **filters):
         self.source_records.extend(await self.source.client.paginate(url="/dcim/sites"))
+
+    async def fetch_items(self, items: Dict):
+        pass
 
     def itemize(self, rec: Dict) -> Dict:
         return {"name": rec["slug"]}
 
-    async def create_items(
-        self, missing: Dict, callback: Optional[CollectionCallback] = None
+    async def add_items(
+        self, items: Dict, callback: Optional[CollectionCallback] = None
     ):
         api: NetboxClient = self.source.client
 
@@ -42,9 +44,14 @@ class NetboxSiteCollection(Collection, SiteCollection):
                 url="/dcim/sites/", json={"name": name, "slug": slugify(name)}
             )
 
-        await self.source.update(updates=missing, callback=callback, creator=_creator)
+        await self.source.update(updates=items, callback=callback, creator=_creator)
 
     async def update_items(
         self, changes: Dict, callback: Optional[CollectionCallback] = None
     ):
-        pass
+        raise NotImplementedError()
+
+    async def delete_items(
+        self, items: Dict, callback: Optional[CollectionCallback] = None
+    ):
+        raise NotImplementedError()
