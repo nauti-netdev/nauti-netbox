@@ -28,13 +28,11 @@ class NetboxIPAddrCollection(Collection, IPAddrCollection):
 
     source_class = NetboxSource
 
-    async def fetch(self, hostname, **params):
+    async def fetch(self, **filters):
         """ fetch args are Netbox specific API parameters """
 
         self.source_records.extend(
-            await self.source.client.paginate(
-                url=_IPAM_ADDR_URL, filters=dict(device=hostname, **params)
-            )
+            await self.source.client.paginate(url=_IPAM_ADDR_URL, filters=filters)
         )
 
     async def fetch_items(self, items):
