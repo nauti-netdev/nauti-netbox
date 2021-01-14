@@ -76,11 +76,11 @@ class NetboxPortChanCollection(Collection, PortChannelCollection):
         # create a cache of the known LAG interfaces because we will need these
         # later in the create/update methods.
 
-        self.cache.setdefault(self, dict())
-
-        self.cache[self]["lag_recs"] = {
-            (hostname, lag_rec["name"]): lag_rec for lag_rec in lag_records
-        }
+        cache = self.cache.setdefault(self, dict())
+        lag_recs = cache.setdefault("lag_recs", dict())
+        lag_recs.update(
+            {(hostname, lag_rec["name"]): lag_rec for lag_rec in lag_records}
+        )
 
         for lag_rec in lag_records:
             res = await nb_api.get(_INTFS_URL, params={"lag_id": lag_rec["id"]})
@@ -124,9 +124,11 @@ class NetboxPortChanCollection(Collection, PortChannelCollection):
         col_ifaces.make_keys()
 
         def _patch(key, item):
+
             if_rec = col_ifaces.source_record_keys[key]
             lag_key = (item["hostname"], item["portchan"])
             lag_rec = self.cache[self]["lag_recs"][lag_key]
+
             return api.patch(
                 _INTFS_URL + f"{if_rec['id']}/", json=dict(lag=lag_rec["id"])
             )

@@ -114,7 +114,13 @@ class NetboxInterfaceCollection(Collection, InterfaceCollection):
     async def delete_items(
         self, items: Dict, callback: Optional[CollectionCallback] = None
     ):
-        raise NotImplementedError()
+        client = self.source.client
+
+        def _delete_task(key, fields):
+            if_id = self.source_record_keys[key]["id"]
+            return client.delete(url=f"/dcim/interfaces/{if_id}/")
+
+        await self.source.update(items, callback, _delete_task)
 
     async def update_items(
         self, items: Dict, callback: Optional[CollectionCallback] = None
@@ -124,11 +130,11 @@ class NetboxInterfaceCollection(Collection, InterfaceCollection):
 
         client = self.source.client
 
-        def _create_task(key, fields):
+        def _update_task(key, fields):
             if_id = self.source_record_keys[key]["id"]
             return client.patch(
                 url=f"/dcim/interfaces/{if_id}/",
                 json=dict(description=fields["description"]),
             )
 
-        await self.source.update(items, callback, _create_task)
+        await self.source.update(items, callback, _update_task)
