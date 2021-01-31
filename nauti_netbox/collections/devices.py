@@ -146,19 +146,14 @@ class NetboxDeviceCollection(Collection, DeviceCollection):
 
         api: NetboxClient = self.source.client
 
+        platforms = await api.paginate(url="/dcim/platforms/")
+        platforms = {rec["slug"]: rec["id"] for rec in platforms}
+
         # ensure that the 'ipaddrs' Collection is in the cache.
 
         if (cached_ipaddrs := self.cache.get("ipaddrs")) is None:
             # we need to fetch all ipaddrs from Netbox so that they can be processed
             # in the create task function below.
-
-            # ipaddr_list = [
-            #     (self.inventory[key]['hostname'], item.fields['ipaddr'])
-            #     for key, item in changes.items()
-            #     if 'ipaddr' in item.fields
-            # ]
-            #
-            # cached_ipaddrs = await self._ensure_ipaddrs(ipaddr_list)
 
             whoami = self.__class__.__name__
             print(f"SKIP: {whoami}.update_changes requires 'ipaddrs' in cache")
@@ -173,9 +168,9 @@ class NetboxDeviceCollection(Collection, DeviceCollection):
         }
 
         def _create_task(key, fields: dict):
-            """ key is the seriali number """
             patch_payload = {}
 
+            # check for update to IP address
             if (ipaddr := fields.get("ipaddr")) is not None:
 
                 if (nb_rec := kex_lkup.get(ipaddr)) is None:
@@ -183,6 +178,14 @@ class NetboxDeviceCollection(Collection, DeviceCollection):
                     return None
 
                 patch_payload["primary_ip4"] = nb_rec["id"]
+
+            # check for update to os_name/platform
+            if (os_name := fields.get("os_name")) is not None:
+                patch_payload["platform"] = platforms[os_name]
+
+            # check for serial-number change
+            if (sn := fields.get("sn")) is not None:
+                patch_payload["serial"] = sn
 
             if not len(patch_payload):
                 return None
