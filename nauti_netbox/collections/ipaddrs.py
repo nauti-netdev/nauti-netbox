@@ -95,9 +95,45 @@ class NetboxIPAddrCollection(Collection, IPAddrCollection):
     async def update_items(
         self, changes: Dict, callback: Optional[CollectionCallback] = None
     ):
-        raise NotImplementedError()
+        # for each update record we will need to fetch the interface record so
+        # we can bind the address to it.
+
+        client: NetboxClient = self.source.client
+
+        # at this time the only change allowed is the re-assignment of IP
+        # address to interface. therefore if there is any chance record that
+        # does *not* include an interface field then we raise an exception.
+
+        try:
+            if_items = [
+                (ch_key[0], ch_val["interface"]) for ch_key, ch_val in changes.items()
+            ]
+        except Exception:
+            raise RuntimeError(
+                f"{self.source.name}:{self.name} - only IP address interface re-assignment supported"
+            )
+
+        if_recs = await client.fetch_devices_interfaces(if_items)
+        if_lkup = {(rec["device"]["name"], rec["name"]): rec for rec in if_recs}
+
+        def _update_task(key, fields):
+            hostname, if_ipaddr = key
+            if_rec = if_lkup[(hostname, fields["interface"])]
+            payload = dict(address=if_ipaddr, interface=if_rec["id"])
+            orig_ipam_rec_id = self.source_record_keys[key]["id"]
+            return client.patch(
+                url=_IPAM_ADDR_URL + f"{orig_ipam_rec_id}/", json=payload
+            )
+
+        await self.source.update(changes, callback, _update_task)
 
     async def delete_items(
         self, items: Dict, callback: Optional[CollectionCallback] = None
     ):
-        raise NotImplementedError()
+        client: NetboxClient = self.source.client
+
+        def _delete_task(key, fields):
+            orig_ipam_rec_id = self.source_record_keys[key]["id"]
+            return client.delete(url=_IPAM_ADDR_URL + f"{orig_ipam_rec_id}/")
+
+        await self.source.update(items, callback, _delete_task)
