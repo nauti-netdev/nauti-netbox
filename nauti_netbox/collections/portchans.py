@@ -136,20 +136,19 @@ class NetboxPortChanCollection(Collection, PortChannelCollection):
         await self.source.update(items, callback=callback, creator=_patch)
 
     async def update_items(
-        self, items: Dict, callback: Optional[CollectionCallback] = None
+        self, changes: Dict, callback: Optional[CollectionCallback] = None
     ):
         # we first need to retrieve all of the interface records
         col_ifaces = get_collection(source=self.source, name="interfaces")
 
         await iawait(
             [
-                col_ifaces.fetch(device=item["hostname"], name=item["interface"])
-                for item in items.values()
+                col_ifaces.fetch(device=hostname, name=if_name)
+                for hostname, if_name in changes.keys()
             ]
         )
 
         col_ifaces.make_keys()
-
         api: NetboxClient = self.source.client
 
         def _patch(_key, _ch_fields):
@@ -162,7 +161,7 @@ class NetboxPortChanCollection(Collection, PortChannelCollection):
                 _INTFS_URL + f"{if_rec['id']}/", json=dict(lag=lag_rec["id"])
             )
 
-        await self.source.update(items, callback=callback, creator=_patch)
+        await self.source.update(changes, callback=callback, creator=_patch)
 
     async def delete_items(
         self, items: Dict, callback: Optional[CollectionCallback] = None
