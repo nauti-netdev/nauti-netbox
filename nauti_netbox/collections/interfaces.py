@@ -54,7 +54,6 @@ class NetboxInterfaceCollection(Collection, InterfaceCollection):
         """
         if "device" not in filters:
             raise RuntimeError("netbox.interfaces.fetch requires 'device' filter.")
-
         self.source_records.extend(
             await self.source.client.paginate(url="/dcim/interfaces/", filters=filters)
         )
