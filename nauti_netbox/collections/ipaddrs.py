@@ -50,7 +50,7 @@ class NetboxIPAddrCollection(Collection, IPAddrCollection):
         # TODO: need to handle difference between the v2.8 release and v2.9 release
         #       where Netbox changed the API body format.
 
-        if not (if_dat := rec.get("interface")):
+        if not (if_dat := rec.get("assigned_object")):
             return {"ipaddr": rec["address"], "hostname": "", "interface": ""}
 
         return {
@@ -83,7 +83,11 @@ class NetboxIPAddrCollection(Collection, IPAddrCollection):
                 )
                 return None
 
-            payload = dict(address=fields["ipaddr"], interface=if_rec["id"])
+            payload = dict(
+                address=fields["ipaddr"],
+                assigned_object_type="dcim.interface",
+                assigned_object_id=if_rec["id"],
+            )
 
             if if_rec["name"].lower().startswith("loopback"):
                 payload["role"] = "loopback"
@@ -119,7 +123,12 @@ class NetboxIPAddrCollection(Collection, IPAddrCollection):
         def _update_task(key, fields):
             hostname, if_ipaddr = key
             if_rec = if_lkup[(hostname, fields["interface"])]
-            payload = dict(address=if_ipaddr, interface=if_rec["id"])
+            payload = dict(
+                address=if_ipaddr,
+                assigned_object_type="dcim.interface",
+                assigned_object_id=if_rec["id"],
+            )
+
             orig_ipam_rec_id = self.source_record_keys[key]["id"]
             return client.patch(
                 url=_IPAM_ADDR_URL + f"{orig_ipam_rec_id}/", json=payload

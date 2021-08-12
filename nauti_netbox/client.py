@@ -47,7 +47,7 @@ __all__ = ["NetboxClient"]
 class NetboxClient(AsyncClient):
     ENV_VARS = ["NETBOX_ADDR", "NETBOX_TOKEN"]
     DEFAULT_PAGE_SZ = 100
-    API_RATE_LIMIT = 100
+    API_RATE_LIMIT = 1
 
     def __init__(self, base_url=None, token=None, **clientopts):
         try:
